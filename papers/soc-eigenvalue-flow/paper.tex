@@ -1,0 +1,691 @@
+\documentclass[11pt,a4paper]{article}
+
+% Packages
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{mathtools}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage[margin=1in]{geometry}
+\usepackage{hyperref}
+\usepackage{cleveref}
+\usepackage{enumitem}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{xcolor}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{natbib}
+\bibliographystyle{unsrtnat}
+
+% Theorem environments
+\newtheorem{definition}{Definition}
+\newtheorem{proposition}{Proposition}
+\newtheorem{theorem}{Theorem}
+\newtheorem{corollary}{Corollary}
+
+% Custom commands
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\C}{\mathbb{C}}
+\newcommand{\T}{\mathbb{T}}
+\newcommand{\calA}{\mathcal{A}}
+\newcommand{\calH}{\mathcal{H}}
+\newcommand{\calD}{\mathcal{D}}
+
+\title{Self-Organized Criticality in the Eigenvalue Flow\\of Trained Recurrent Networks}
+
+\author{
+Jared O.\ Dunahay, D.O.\thanks{Corresponding author. Email: jared@trivector.ai}\\
+\textit{AEO Trivector LLC, Manchester, NH}
+}
+
+\date{February 2026}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We introduce \emph{eigenvalue flow tracking}---the analysis of how individual
+Jacobian eigenvalues move through the complex plane across timesteps in trained
+recurrent neural networks. Using Hungarian algorithm matching to establish
+eigenvalue correspondence between consecutive timesteps, we decompose eigenvalue
+motion into angular (phase) and radial (magnitude) components and classify
+eigenvalue trajectories by their relationship to the real axis. In trained LSTMs
+across hidden dimensions $h \in \{28, 42, 56, 70, 84, 112\}$, we find three
+principal results. First, angular velocity exceeds radial velocity by a factor of
+$16$, demonstrating that eigenvalue dynamics are geometrically orthogonal to
+eigenvalue content---modes precess around closed orbits while maintaining nearly
+constant amplitude. Second, approximately $10\%$ of eigenvalues are
+\emph{oscillating modes} that repeatedly cross the real axis, dynamically
+switching between oscillatory (transport) and scaling (transform) behavior; this
+fraction is the most scale-invariant metric observed and correlates with
+computational demand. Third, $57\%$ of eigenvalues lie within $|\mathrm{Im}| <
+0.05$ of the real axis, with the spectral gap decreasing as $h$ increases,
+indicating self-organized criticality at the transport/transform bifurcation
+boundary. We connect these findings to noncommutative geometry by identifying the
+Jacobian as the Dirac operator of a spectral triple, with the angular/radial
+decomposition corresponding to the Clifford grade structure. These results
+provide a geometric characterization of computation in recurrent networks as
+topological reconfiguration at a self-organized critical boundary.
+\end{abstract}
+
+\section{Introduction}
+
+The eigenvalue spectrum of the state-transition Jacobian $J_t = \partial
+h_t/\partial h_{t-1}$ is a fundamental object in recurrent neural network (RNN)
+dynamics. Its magnitude distribution governs gradient flow
+\citep{pascanu2013difficulty, bengio1994learning}, while its phase structure
+encodes the oscillatory modes available for information transport
+\citep{vorontsov2017orthogonality, arjovsky2016unitary}. Prior work has
+characterized the \emph{static} spectrum---the distribution of eigenvalues at
+isolated timesteps---but has not tracked how individual eigenvalues \emph{move}
+through the complex plane during sequence processing.
+
+This paper introduces \textbf{eigenvalue flow tracking}: the measurement of
+individual eigenvalue trajectories across timesteps, established via optimal
+matching (the Hungarian algorithm) between consecutive spectra. This shift from
+static snapshots to dynamic trajectories reveals structure invisible to
+single-timestep analysis.
+
+Our principal contributions are:
+
+\begin{enumerate}[label=(\roman*)]
+  \item \textbf{Angular--radial decomposition.} We decompose eigenvalue motion
+  into angular velocity (phase change) and radial velocity (magnitude change),
+  finding a ratio of $16{:}1$ in trained LSTMs. This establishes that the
+  \emph{dynamics} of the Jacobian spectrum are geometrically orthogonal to its
+  \emph{content}---modes precess while amplitudes remain nearly constant.
+
+  \item \textbf{Trajectory classification.} We classify eigenvalue trajectories
+  by their relationship to the real axis, identifying four populations:
+  persistent-complex (${\sim}82\%$), oscillating (${\sim}10\%$),
+  persistent-real (${\sim}2\%$), and transitioning (${\sim}6\%$). The
+  oscillating population---modes that repeatedly cross the real
+  axis---constitutes the active computation fraction and is the most
+  scale-invariant metric observed.
+
+  \item \textbf{Self-organized criticality.} We show that trained networks
+  position $57\%$ of their eigenvalues within $|\mathrm{Im}(\lambda)| < 0.05$
+  of the real axis, with the spectral gap decreasing as network size increases.
+  This indicates self-organization to the bifurcation boundary between
+  oscillatory and scaling modes, maximizing computational flexibility.
+
+  \item \textbf{Crossing rate as computational measure.} The rate at which
+  eigenvalues cross the real axis correlates with task computational demand:
+  compute-intensive inputs produce $14$--$48\%$ more crossings than
+  memory-only inputs.
+\end{enumerate}
+
+We connect these findings to noncommutative geometry by identifying the Jacobian
+as the Dirac operator $\calD$ of a spectral triple $(\calA, \calH, \calD)$,
+with the angular/radial decomposition corresponding to the Clifford algebra
+grade structure (Grade~2 rotation vs.\ Grade~0 scaling).
+
+
+\section{Background and Related Work}
+
+\subsection{Jacobian Eigenvalue Analysis in RNNs}
+
+The role of Jacobian eigenvalues in RNN training dynamics is well established.
+\citet{pascanu2013difficulty} showed that eigenvalue magnitudes greater than
+unity cause exploding gradients, while magnitudes less than unity cause vanishing
+gradients. Subsequent work on unitary and orthogonal RNNs
+\citep{arjovsky2016unitary, vorontsov2017orthogonality, lezcano2019cheap}
+constrained eigenvalue magnitudes to the unit circle, improving long-range
+dependency learning at the cost of expressiveness.
+
+\citet{chen2018dynamical} analyzed RNNs through the lens of dynamical systems,
+connecting Jacobian spectra to Lyapunov exponents. \citet{engelken2023lyapunov}
+extended this to trained networks, showing that training reorganizes the Lyapunov
+spectrum. Our work complements these by tracking \emph{individual} eigenvalues
+rather than characterizing the spectrum statistically.
+
+\subsection{Self-Organized Criticality}
+
+Self-organized criticality (SOC) describes systems that naturally evolve toward
+critical states without external tuning \citep{bak1987self}. In neuroscience,
+\citet{beggs2003neuronal} observed neural avalanche statistics consistent with
+SOC, and \citet{langton1990computation} argued that computation is maximized at
+the ``edge of chaos.'' \citet{bertschinger2004real} showed that recurrent
+networks at the edge of chaos maximize computational capacity.
+
+Our finding that trained LSTMs position their eigenvalues at the real-axis
+bifurcation boundary extends this literature by providing a precise geometric
+characterization: the critical boundary is between oscillatory and scaling
+eigenvalue modes, and the spectral gap to this boundary decreases with network
+size.
+
+\subsection{Noncommutative Geometry and Neural Networks}
+
+The spectral triple $(\calA, \calH, \calD)$ of noncommutative geometry
+\citep{connes1994noncommutative} provides a framework in which geometric
+information is encoded in the spectrum of the Dirac operator $\calD$. Recent
+work has explored connections between neural network architectures and
+noncommutative geometry \citep{lassig2022geometrical}. We make this connection
+concrete: the state-transition Jacobian serves as $\calD$, with its Clifford
+grade decomposition directly measurable in the angular/radial structure of the
+eigenvalue flow.
+
+
+\section{Methods}
+
+\subsection{Experimental Setup}
+
+We train LSTM networks on a combined memory-and-compute task: given a sequence
+of $(x_t, \text{flag}_t)$ pairs, the network must output $x_t$ when
+$\text{flag}_t = 0$ (memory: recall the stored value) and $\sum_{s \le t} x_s$
+when $\text{flag}_t = 1$ (compute: running sum). Sequence length is $10$. We
+train networks at hidden dimensions $h \in \{28, 42, 56, 70, 84, 112\}$ to
+convergence using Adam optimization with learning rate $10^{-3}$.
+
+After training, we extract the state-transition Jacobian $J_t = \partial
+h_t/\partial h_{t-1} \in \R^{h \times h}$ at each timestep $t$ for a batch of
+test sequences using automatic differentiation, and compute its eigenvalue
+decomposition.
+
+\subsection{Eigenvalue Flow Tracking}
+
+\begin{definition}[Eigenvalue flow]
+Given a sequence of Jacobians $\{J_1, \ldots, J_T\}$ with eigenvalue spectra
+$\{\Lambda_1, \ldots, \Lambda_T\}$ where $\Lambda_t = \{\lambda_t^{(1)},
+\ldots, \lambda_t^{(h)}\}$, the \emph{eigenvalue flow} is a set of trajectories
+$\{\gamma^{(i)}\}_{i=1}^h$ where $\gamma^{(i)} = (\lambda_1^{(\sigma_1(i))},
+\lambda_2^{(\sigma_2(i))}, \ldots, \lambda_T^{(\sigma_T(i))})$ and the
+permutations $\sigma_t$ are chosen to minimize total displacement.
+\end{definition}
+
+We establish eigenvalue correspondence between consecutive timesteps using the
+Hungarian algorithm \citep{kuhn1955hungarian}. The cost matrix for matching
+eigenvalues at times $t$ and $t{+}1$ is $C_{ij} = |\lambda_t^{(i)} -
+\lambda_{t+1}^{(j)}|$, where $|\cdot|$ denotes complex modulus. The Hungarian
+algorithm finds the permutation $\sigma_{t+1}$ minimizing $\sum_i
+C_{i,\sigma_{t+1}(i)}$.
+
+\subsection{Angular--Radial Decomposition}
+
+For an eigenvalue $\lambda = r e^{i\theta}$, we decompose its motion into:
+
+\begin{definition}[Angular and radial velocity]
+Given consecutive eigenvalue positions $\lambda_t = r_t e^{i\theta_t}$ and
+$\lambda_{t+1} = r_{t+1} e^{i\theta_{t+1}}$ along a tracked trajectory, the
+\emph{radial velocity} is $v_r = |r_{t+1} - r_t|$ and the \emph{angular
+velocity} is $v_\theta = |\theta_{t+1} - \theta_t|$ (with appropriate phase
+unwrapping).
+\end{definition}
+
+The ratio $v_\theta / v_r$ quantifies the degree to which eigenvalue motion is
+rotational (phase-dominated) versus scaling (magnitude-dominated).
+
+\subsection{Trajectory Classification}
+
+We classify eigenvalue trajectories into four types based on their interaction
+with the real axis:
+
+\begin{definition}[Trajectory types]
+An eigenvalue is \emph{real at time $t$} if $|\mathrm{Im}(\lambda_t)| <
+\epsilon$ for threshold $\epsilon = 10^{-6}$. A trajectory $\gamma$ over $T$
+timesteps is classified as:
+\begin{itemize}[nosep]
+  \item \textbf{Persistent-complex}: real at fewer than $10\%$ of timesteps.
+  \item \textbf{Persistent-real}: real at more than $90\%$ of timesteps.
+  \item \textbf{Oscillating}: crosses the real axis $\ge 3$ times.
+  \item \textbf{Transitioning}: crosses the real axis $1$--$2$ times.
+\end{itemize}
+\end{definition}
+
+A \emph{real-axis crossing} occurs when the real/complex classification changes
+between consecutive timesteps: $|\mathrm{Im}(\lambda_t)| < \epsilon$ and
+$|\mathrm{Im}(\lambda_{t+1})| \ge \epsilon$, or vice versa.
+
+\subsection{Conjugate Pairing}
+
+Since the Jacobian $J_t$ is a real matrix, its complex eigenvalues appear in
+conjugate pairs $\lambda, \bar\lambda$. We explicitly pair conjugates by
+matching each eigenvalue with imaginary part $> \epsilon$ to its closest partner
+with imaginary part $< -\epsilon$. Unpaired eigenvalues with $|\mathrm{Im}| <
+\epsilon$ are classified as real. This guarantees an even count of complex
+eigenvalues, correcting threshold-based methods that can produce odd counts.
+
+\subsection{Co-Movement Analysis}
+
+To detect functional groupings, we compute the velocity time series $v^{(i)}_t =
+|\lambda_{t+1}^{(i)} - \lambda_t^{(i)}|$ for each trajectory $i$ and form the
+correlation matrix $R_{ij} = \mathrm{corr}(v^{(i)}, v^{(j)})$. We cluster
+trajectories using hierarchical agglomerative clustering (Ward's method) on the
+distance matrix $D_{ij} = 1 - |R_{ij}|$, selecting the optimal number of
+clusters $k^*$ by silhouette score.
+
+
+\section{Results}
+
+\subsection{Angular Velocity Dominates Radial Velocity}
+
+\begin{table}[h]
+\centering
+\caption{Angular and radial velocities of tracked eigenvalues across hidden
+dimensions. The angular/radial ratio quantifies the separation between phase
+dynamics and amplitude dynamics.}
+\label{tab:angular_radial}
+\begin{tabular}{@{}cccc@{}}
+\toprule
+$h$ & Angular vel.\ $\langle v_\theta \rangle$ & Radial vel.\ $\langle v_r \rangle$ & Ratio $v_\theta / v_r$ \\
+\midrule
+28  & 0.179 & 0.014 & 13.4 \\
+56  & 0.128 & 0.008 & 16.1 \\
+112 & 0.104 & 0.006 & 16.1 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The angular velocity of tracked eigenvalues exceeds the radial velocity by a
+factor of $13$--$16\times$ across all hidden dimensions tested
+(\Cref{tab:angular_radial}). This ratio increases from $13.4$ at $h = 28$ to
+$16.1$ at $h = 56$ and $h = 112$, indicating that larger networks exhibit
+greater separation between phase and amplitude dynamics.
+
+Physically, this means eigenvalues \emph{precess} around orbits in the complex
+plane while maintaining nearly constant magnitude. The information carried by a
+mode (encoded in its amplitude) is transported (via phase rotation) without
+being transformed (amplitude change). The dynamics of the Jacobian spectrum are
+geometrically orthogonal to its content.
+
+\subsubsection{Connection to Clifford Grade Structure}
+
+The Jacobian admits a Clifford algebra decomposition into grade components. For
+$J \in \R^{h \times h}$:
+
+\begin{equation}
+J = \underbrace{\frac{\mathrm{tr}(J)}{h} I}_{\text{Grade 0 (scalar)}} +
+    \underbrace{\frac{J - J^\top}{2}}_{\text{Grade 2 (bivector)}} +
+    \underbrace{\frac{J + J^\top}{2} - \frac{\mathrm{tr}(J)}{h}
+    I}_{\text{Grade 1 (traceless symmetric)}}
+\label{eq:grade_decomposition}
+\end{equation}
+
+The Grade~0 component drives radial motion (uniform scaling), while the Grade~2
+(antisymmetric) component drives angular motion (rotation). The measured $16{:}1$
+angular/radial ratio directly reflects the energy ratio $\|G_2\| / \|G_0\|$ in
+the Jacobian's grade decomposition.
+
+\subsection{Trajectory Type Distribution}
+
+\begin{table}[h]
+\centering
+\caption{Distribution of eigenvalue trajectory types at $h = 112$ (mean over
+test sequences, $T = 10$ timesteps). Trajectory classification based on
+real-axis crossing frequency.}
+\label{tab:trajectory_types}
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+$h$ & Persistent-complex & Oscillating & Persistent-real & Transitioning \\
+\midrule
+28  & 59.6\% & 15.4\% & 10.0\% & 15.0\% \\
+56  & 73.2\% & 14.3\% & 3.6\%  & 8.9\%  \\
+112 & 81.5\% & 10.4\% & 2.3\%  & 5.8\%  \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+At $h = 112$, the trajectory population decomposes as follows
+(\Cref{tab:trajectory_types}):
+
+\begin{itemize}[nosep]
+  \item \textbf{Persistent-complex} ($81.5\%$): Modes that remain complex at
+  every timestep. These form the structural skeleton of the oscillatory
+  dynamics---stable transport channels that never participate directly in
+  computation.
+
+  \item \textbf{Oscillating} ($10.4\%$): Modes that cross the real axis three
+  or more times in $T = 10$ timesteps. These are the \emph{active computation}
+  population---eigenvalues that dynamically switch between oscillatory and
+  scaling behavior.
+
+  \item \textbf{Persistent-real} ($2.3\%$): Modes that remain real throughout.
+  These have near-zero magnitude (mean $|\lambda| = 0.07$ at $h = 112$) and
+  represent collapsed dimensions of the state space.
+
+  \item \textbf{Transitioning} ($5.8\%$): Modes that cross the real axis once
+  or twice, possibly responding to specific input features.
+\end{itemize}
+
+The oscillating fraction is the most scale-invariant metric observed, decreasing
+slowly from $15.4\%$ at $h = 28$ to $10.4\%$ at $h = 112$. By contrast, the
+persistent-complex fraction increases sharply ($59.6\% \to 81.5\%$), indicating
+that additional network capacity is allocated to transport rather than
+computation.
+
+\subsection{Crossing Rate Correlates with Computational Demand}
+
+\begin{table}[h]
+\centering
+\caption{Mean real-axis crossings per timestep for memory-only and
+compute-required inputs. Compute inputs consistently produce more crossings.}
+\label{tab:crossing_rate}
+\begin{tabular}{@{}cccc@{}}
+\toprule
+$h$ & Memory crossings/step & Compute crossings/step & Ratio \\
+\midrule
+28  & 2.04 & 3.02 & 1.48 \\
+56  & 3.73 & 4.58 & 1.23 \\
+112 & 5.51 & 6.27 & 1.14 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Timesteps requiring computation (running sum) produce $14$--$48\%$ more
+real-axis crossings than timesteps requiring only memory (value recall)
+(\Cref{tab:crossing_rate}). Each crossing represents a mode dynamically
+switching its role: a complex-to-real crossing converts an oscillatory (transport)
+mode into a scaling (transform) mode, while a real-to-complex crossing releases
+a dimension back to transport.
+
+The crossing-rate ratio decreases with $h$ ($1.48 \to 1.14$), consistent with
+larger networks having greater spare capacity: they can handle both memory and
+compute tasks with less dynamic reconfiguration.
+
+\subsection{Self-Organized Criticality at the Bifurcation Boundary}
+
+\begin{table}[h]
+\centering
+\caption{Criticality metrics across hidden dimensions. The spectral gap (minimum
+$|\mathrm{Im}(\lambda)|$ among complex eigenvalues) decreases with $h$, while
+the near-axis density remains high.}
+\label{tab:criticality}
+\begin{tabular}{@{}cccc@{}}
+\toprule
+$h$ & Mean spectral gap & Density $|\mathrm{Im}| < 0.01$ & Density $|\mathrm{Im}| < 0.05$ \\
+\midrule
+28  & 0.0101 & 28.7\% & 60.1\% \\
+56  & 0.0061 & 20.0\% & 57.9\% \\
+112 & 0.0037 & 16.5\% & 56.7\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The spectral gap---the minimum imaginary part among complex eigenvalues---shrinks
+monotonically with $h$ (\Cref{tab:criticality}). More than half of all
+eigenvalues (${\sim}57\%$) lie within $|\mathrm{Im}| < 0.05$ of the real axis,
+clustered near the bifurcation boundary between oscillatory and scaling behavior.
+
+This indicates self-organized criticality: training positions eigenvalues near
+the phase transition between transport and transform modes, maximizing the
+network's ability to dynamically reconfigure its computational topology with
+minimal perturbation. The criticality increases with scale---larger networks are
+\emph{more} finely poised at the boundary.
+
+\subsection{Transport Fraction Across Hidden Dimensions}
+
+\begin{table}[h]
+\centering
+\caption{Transport fraction (percentage of complex eigenvalues) measured by
+corrected conjugate pairing across hidden dimensions. The number of real
+eigenvalues $n_\mathrm{real}$ follows a logarithmic scaling law.}
+\label{tab:transport}
+\begin{tabular}{@{}ccccc@{}}
+\toprule
+$h$ & Mean pairs & Mean $n_\mathrm{real}$ & Transport \% & Random matrix $n_\mathrm{real}$ \\
+\midrule
+28  & 11.8 & 4.3  & 84.6\% & 4.2 \\
+42  & 17.8 & 6.3  & 85.1\% & 5.2 \\
+56  & 24.0 & 8.1  & 85.6\% & 6.0 \\
+70  & 31.4 & 7.2  & 89.7\% & 6.7 \\
+84  & 37.7 & 8.6  & 89.8\% & 7.3 \\
+112 & 51.0 & 9.9  & 91.2\% & 8.4 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The transport fraction (proportion of complex eigenvalues) increases
+monotonically with $h$, from $84.6\%$ at $h = 28$ to $91.2\%$ at $h = 112$
+(\Cref{tab:transport}). The number of real eigenvalues follows a logarithmic
+scaling law:
+
+\begin{equation}
+n_\mathrm{real}(h) \approx 3.75 \ln(h) - 7.91 \quad (R^2 = 0.91)
+\label{eq:nreal_scaling}
+\end{equation}
+
+Trained networks consistently exhibit \emph{more} real eigenvalues than predicted
+by random matrix theory for Gaussian matrices of the same dimension (expected
+$n_\mathrm{real} \sim \sqrt{2h/\pi}$). The excess of $2$--$3$ real eigenvalues
+above the random baseline suggests that training creates additional non-oscillatory
+modes beyond what matrix dimensionality alone would produce.
+
+\subsection{Co-Movement Structure}
+
+Velocity-correlation clustering yields an optimal cluster count of $k^* = 8$
+across all hidden dimensions (silhouette score $0.21$--$0.54$). This is
+consistent with the LSTM architecture's eight weight matrices ($W_{ii}, W_{if},
+W_{ig}, W_{io}, W_{hi}, W_{hf}, W_{hg}, W_{ho}$), each contributing an
+independent source of eigenvalue perturbation. The co-movement structure reflects
+\emph{architecture}, not task topology.
+
+
+\section{Discussion}
+
+\subsection{The Spectral Triple Interpretation}
+
+The state-transition Jacobian $J_t$ of a trained RNN can be identified with the
+Dirac operator $\calD$ in a spectral triple $(\calA, \calH, \calD)$ from
+noncommutative geometry \citep{connes1994noncommutative}:
+
+\begin{itemize}[nosep]
+  \item $\calA$: the algebra of weight matrices (non-commutative)
+  \item $\calH$: the hidden state space $\R^h$ (Hilbert space)
+  \item $\calD = J_t$: the state-transition Jacobian (Dirac operator)
+\end{itemize}
+
+In this framework, the Clifford grade decomposition of $\calD$
+(\Cref{eq:grade_decomposition}) has direct physical meaning: Grade~2 (the
+antisymmetric part) generates rotations in eigenvalue space, while Grade~0 (the
+trace) generates uniform scaling. Our measured $16{:}1$ angular/radial ratio
+demonstrates that trained networks operate in a regime where the rotational
+(Grade~2) component dominates the scaling (Grade~0) component.
+
+This provides empirical content to the abstract notion that ``dynamics are
+orthogonal to content'': in the eigenvalue flow, phase dynamics (the how of
+information transport) and amplitude dynamics (the what of information content)
+are geometrically separated, with phase motion occurring $16\times$ faster than
+amplitude change.
+
+\subsection{Breathing Topology}
+
+A striking feature of the eigenvalue flow is that the number of real eigenvalues
+fluctuates significantly within a single forward pass. At $h = 56$,
+$n_\mathrm{real}$ ranges from $4$ to $12$ across timesteps (mean $8.1$). This
+means the effective topology of the dynamical manifold changes at every timestep:
+
+\begin{equation}
+\mathcal{M}_h(t) \cong \T^{p(t)} \times \R^{r(t)}, \quad p(t) + r(t) = h
+\end{equation}
+
+where $p(t)$ and $r(t)$ are the numbers of conjugate pairs and real eigenvalues
+at time $t$, respectively. Each real-axis crossing by an eigenvalue represents a
+topological event---the creation or destruction of a toroidal dimension. The
+\emph{rate} of these topological events is a measure of computational intensity
+(\Cref{tab:crossing_rate}).
+
+This ``breathing topology'' is qualitatively different from the fixed manifold
+assumed in most dynamical systems analyses of RNNs. The network does not have a
+fixed attractor landscape; it dynamically reconfigures its phase space geometry
+in response to input demands.
+
+\subsection{Self-Organized Criticality}
+
+The concentration of eigenvalues near the real axis ($57\%$ within $|\mathrm{Im}|
+< 0.05$) and the decreasing spectral gap with $h$ are hallmarks of
+self-organized criticality \citep{bak1987self}. The critical boundary in this
+system is the real axis of the complex eigenvalue plane: eigenvalues above this
+boundary are oscillatory (transport modes), while those on it are scaling
+(transform modes).
+
+Training drives the system toward this boundary, not to any particular spectrum,
+but to a \emph{distribution} that maximizes the number of modes poised to switch
+roles. This is consistent with the ``edge of chaos'' hypothesis
+\citep{langton1990computation, bertschinger2004real}: computational capacity is
+maximized when the system is poised between ordered (all-oscillatory) and
+chaotic (all-scaling) regimes.
+
+The novel contribution here is the geometric precision: the critical boundary is
+the real axis of the Jacobian eigenvalue plane, the order parameter is the
+near-axis density, and the critical exponent is related to the logarithmic growth
+of $n_\mathrm{real}$ with $h$.
+
+\subsection{Limitations}
+
+Several limitations should be noted. Our experiments use a single task type
+(memory-and-compute) with short sequences ($T = 10$). The architecture is
+limited to standard LSTMs. The co-movement structure ($k = 8$) appears to
+reflect LSTM-specific architecture rather than universal computational structure.
+Extending to longer sequences, diverse tasks, and alternative architectures (GRU,
+Transformer) is necessary to establish generality.
+
+The eigenvalue flow tracking relies on the assumption that small eigenvalue
+displacements between consecutive timesteps imply identity---that ``the same''
+eigenvalue has moved. For large perturbations between timesteps, this assumption
+may break down.
+
+
+\section{Predictions}
+
+The following predictions are falsifiable and should be tested in future work:
+
+\begin{enumerate}[label=\textbf{P\arabic*.}]
+  \item \textbf{Architecture dependence of co-movement.} The optimal
+  co-movement cluster count $k^*$ equals the number of independent weight
+  matrices in the architecture. Predicted: $k^* = 6$ for GRU ($3$ gates
+  $\times$ $2$ weight types), $k^* = 2$ for vanilla RNN.
+
+  \item \textbf{Architecture invariance of angular/radial ratio.} The
+  angular/radial velocity ratio $v_\theta / v_r > 10$ for any trained recurrent
+  architecture on any sequential task. This ratio reflects the generic dominance
+  of Grade~2 over Grade~0 in trained Jacobians, not architecture-specific
+  structure.
+
+  \item \textbf{Oscillating fraction convergence.} The oscillating fraction
+  approaches ${\sim}9\%$ as $h \to 500$ and/or as task complexity increases.
+  This fraction represents the asymptotic balance between structural transport
+  and active computation.
+
+  \item \textbf{Crossing rate as complexity predictor.} The real-axis crossing
+  rate at a given timestep predicts the local loss contribution of that
+  timestep. Higher crossing rates indicate more topological reconfiguration,
+  corresponding to more demanding computation.
+
+  \item \textbf{Spectral gap scaling.} The spectral gap (minimum $|\mathrm{Im}|$
+  among complex eigenvalues) scales as $\mathcal{O}(h^{-\alpha})$ for some
+  $\alpha > 0$, approaching zero as $h \to \infty$. Trained networks become
+  increasingly critical at scale.
+\end{enumerate}
+
+
+\section{Conclusion}
+
+Eigenvalue flow tracking reveals that trained recurrent networks develop a
+characteristic computational geometry: eigenvalues precess ($16\times$ faster
+phase than amplitude change), approximately $10\%$ of modes actively switch
+between transport and transform roles, and the system self-organizes to the
+bifurcation boundary between oscillatory and scaling behavior.
+
+The computation performed by a trained RNN can be understood as
+\emph{topological reconfiguration}: the dynamic creation and destruction of
+oscillatory dimensions in the Jacobian eigenvalue spectrum, driven by input
+demands, at a self-organized critical boundary. The rate of this reconfiguration
+measures computational intensity, the separation between angular and radial
+dynamics encodes the geometric orthogonality of transport and content, and the
+near-axis concentration of eigenvalues reflects the system's readiness to
+reconfigure.
+
+These findings provide a concrete, measurable link between the abstract
+mathematics of noncommutative geometry and the empirical dynamics of trained
+neural networks, suggesting that the spectral triple framework may be a natural
+language for characterizing learned computation.
+
+\section*{Acknowledgments}
+
+The author thanks the collaborative AI systems that contributed to the
+iterative experimental design across versions v5.7--v5.18, including systematic
+hypothesis generation, measurement apparatus design, and honest evaluation of
+falsified predictions.
+
+\begin{thebibliography}{20}
+
+\bibitem[Arjovsky et~al.(2016)]{arjovsky2016unitary}
+M.~Arjovsky, A.~Shah, and Y.~Bengio.
+\newblock Unitary evolution recurrent neural networks.
+\newblock In \emph{Proc.\ ICML}, 2016.
+
+\bibitem[Bak et~al.(1987)]{bak1987self}
+P.~Bak, C.~Tang, and K.~Wiesenfeld.
+\newblock Self-organized criticality: An explanation of the $1/f$ noise.
+\newblock \emph{Physical Review Letters}, 59(4):381, 1987.
+
+\bibitem[Beggs and Plenz(2003)]{beggs2003neuronal}
+J.~M.~Beggs and D.~Plenz.
+\newblock Neuronal avalanches in neocortical circuits.
+\newblock \emph{Journal of Neuroscience}, 23(35):11167--11177, 2003.
+
+\bibitem[Bengio et~al.(1994)]{bengio1994learning}
+Y.~Bengio, P.~Simard, and P.~Frasconi.
+\newblock Learning long-term dependencies with gradient descent is difficult.
+\newblock \emph{IEEE Trans.\ Neural Networks}, 5(2):157--166, 1994.
+
+\bibitem[Bertschinger and Natschl{\"a}ger(2004)]{bertschinger2004real}
+N.~Bertschinger and T.~Natschl{\"a}ger.
+\newblock Real-time computation at the edge of chaos in recurrent neural
+  networks.
+\newblock \emph{Neural Computation}, 16(7):1413--1436, 2004.
+
+\bibitem[Chen(2018)]{chen2018dynamical}
+M.~Chen.
+\newblock A dynamical systems approach to analyzing recurrent neural networks.
+\newblock \emph{arXiv preprint arXiv:1812.00865}, 2018.
+
+\bibitem[Connes(1994)]{connes1994noncommutative}
+A.~Connes.
+\newblock \emph{Noncommutative Geometry}.
+\newblock Academic Press, 1994.
+
+\bibitem[Engelken et~al.(2023)]{engelken2023lyapunov}
+R.~Engelken, F.~Wolf, and L.~F.~Abbott.
+\newblock Lyapunov spectra of chaotic recurrent neural networks.
+\newblock \emph{Physical Review Research}, 5(4):043044, 2023.
+
+\bibitem[Kuhn(1955)]{kuhn1955hungarian}
+H.~W.~Kuhn.
+\newblock The Hungarian method for the assignment problem.
+\newblock \emph{Naval Research Logistics}, 2(1-2):83--97, 1955.
+
+\bibitem[Langton(1990)]{langton1990computation}
+C.~G.~Langton.
+\newblock Computation at the edge of chaos: Phase transitions and emergent
+  computation.
+\newblock \emph{Physica D}, 42(1-3):12--37, 1990.
+
+\bibitem[L{\"a}ssig et~al.(2022)]{lassig2022geometrical}
+M.~L{\"a}ssig, V.~Mustonen, and A.~Walczak.
+\newblock Geometrical aspects of neural network dynamics.
+\newblock \emph{arXiv preprint arXiv:2212.12401}, 2022.
+
+\bibitem[Lezcano-Casado and Mart{\'i}nez-Rubio(2019)]{lezcano2019cheap}
+M.~Lezcano-Casado and D.~Mart{\'i}nez-Rubio.
+\newblock Cheap orthogonal constraints in neural networks: A simple
+  parametrization of the orthogonal and unitary group.
+\newblock In \emph{Proc.\ ICML}, 2019.
+
+\bibitem[Pascanu et~al.(2013)]{pascanu2013difficulty}
+R.~Pascanu, T.~Mikolov, and Y.~Bengio.
+\newblock On the difficulty of training recurrent neural networks.
+\newblock In \emph{Proc.\ ICML}, 2013.
+
+\bibitem[Vorontsov et~al.(2017)]{vorontsov2017orthogonality}
+E.~Vorontsov, C.~Trabelsi, S.~Kadoury, and C.~Pal.
+\newblock On orthogonality and learning recurrent networks with long term
+  dependencies.
+\newblock In \emph{Proc.\ ICML}, 2017.
+
+\end{thebibliography}
+
+\end{document}

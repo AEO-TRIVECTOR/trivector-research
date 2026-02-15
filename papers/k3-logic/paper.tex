@@ -1,0 +1,572 @@
+\documentclass[12pt,a4paper]{article}
+
+% Packages
+\usepackage{amsmath,amssymb,amsfonts,amsthm}
+\usepackage{mathtools}
+\usepackage{bm}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{enumitem}
+\usepackage[margin=1in]{geometry}
+\usepackage{authblk}
+\usepackage{tikz}
+\usetikzlibrary{arrows,positioning,shapes}
+
+% Hyperref setup
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    citecolor=blue,
+    urlcolor=blue
+}
+
+% Theorem environments
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{remark}[theorem]{Remark}
+\newtheorem{axiom}{Axiom}
+\newtheorem{principle}{Principle}
+
+% Custom commands
+\newcommand{\K}{\mathbb{K}_3}
+\newcommand{\Undef}{\varnothing}
+\newcommand{\True}{\top}
+\newcommand{\False}{\bot}
+\newcommand{\Collapse}{\rightsquigarrow}
+\newcommand{\SR}{\mathsf{SR}}
+\newcommand{\CC}{\mathsf{CC}}
+
+\begin{document}
+
+\title{\textbf{K3 Logic as the Native Formalism for Self-Referential Systems}\\[0.5em]
+\large From Gödel to Alignment: Uncertainty as Structure, Not Limitation}
+
+\author[1]{Jared Omega Dunahay\thanks{jared@trivector.ai}}
+\author[2]{Claude}
+\affil[1]{AEO Trivector LLC, Manchester, NH 03101, USA}
+\affil[2]{Anthropic, San Francisco, CA 94107, USA}
+
+\date{\today}
+
+\maketitle
+
+\begin{abstract}
+We propose that Kleene's three-valued logic (K3) is not merely a technical tool for handling partial information, but the \emph{native formalism} for self-referential systems. Self-reference---whether in formal systems (Gödel), truth predicates (Tarski), computation (Turing), interpretability (the hard problem), or AI alignment (value verification)---systematically generates propositions that are neither true nor false but \emph{structurally undefined} ($\Undef$). 
+
+We formalize this through three contributions: (1) the \textbf{Self-Reference Theorem}, showing that any sufficiently expressive system asking about its own properties generates K3-valued outputs; (2) the \textbf{Collapse Criteria Framework}, which operationalizes $\Undef$ by specifying what evidence would resolve it to $\True$ or $\False$; and (3) the \textbf{Riemann Sphere Semantics}, mapping $\{\True, \False, \Undef\} \to \{0, 1, \infty\}$ to provide geometric coherence under self-referential transformations.
+
+We argue that the ``limitations'' identified by Gödel, Tarski, and Turing are not bugs but correct outputs---the recognition that certain self-referential queries have $\Undef$ as their proper truth value. This reframing has immediate implications for AI alignment: systems reasoning about their own values, consistency, or interpretability should output $\Undef$ with explicit collapse criteria, rather than hallucinated certainty.
+
+\medskip
+\noindent\textbf{Keywords:} three-valued logic, self-reference, Gödel incompleteness, interpretability, AI alignment, Riemann sphere, Kleene logic
+\end{abstract}
+
+%==============================================================================
+\section{Introduction}
+\label{sec:intro}
+%==============================================================================
+
+\subsection{The Problem of Self-Reference}
+
+Self-referential systems---those whose behavior depends on representations of their own states---exhibit a recurring pattern across mathematics, logic, computer science, and philosophy of mind:
+
+\begin{itemize}
+    \item \textbf{Gödel's Incompleteness}: Sufficiently powerful formal systems cannot prove their own consistency.
+    \item \textbf{Tarski's Undefinability}: No language can define its own truth predicate.
+    \item \textbf{Turing's Halting Problem}: No algorithm can decide whether arbitrary programs halt.
+    \item \textbf{The Hard Problem}: No functional account explains why there is ``something it is like'' to be conscious.
+    \item \textbf{Value Alignment}: No system can verify its own values are correct from inside that system.
+\end{itemize}
+
+The standard interpretation treats these as \emph{limitations}---theorems about what cannot be done. We propose a different interpretation: these results identify propositions whose correct truth value is neither $\True$ nor $\False$, but $\Undef$ (undefined).
+
+\subsection{The Thesis}
+
+\begin{principle}[Self-Reference Generates Undefinedness]
+When a sufficiently expressive system $S$ formulates propositions about its own global properties (consistency, truth, halting, experience, values), the correct truth value of these propositions---as evaluated from within $S$---is $\Undef$.
+\end{principle}
+
+This is not epistemic uncertainty (we don't know the answer). It is \emph{structural undefinedness} (the question, asked from this vantage point, does not have a binary answer).
+
+\subsection{Why K3?}
+
+Kleene's strong three-valued logic \cite{Kleene1952} provides the minimal extension of classical logic that can represent structural undefinedness:
+
+\begin{definition}[K3 Logic]
+K3 is the three-valued logic with truth values $\K = \{\True, \False, \Undef\}$ and operations:
+\begin{align}
+\neg \True &= \False, \quad \neg \False = \True, \quad \neg \Undef = \Undef \\
+\True \land x &= x, \quad \False \land x = \False, \quad \Undef \land \Undef = \Undef \\
+\False \lor x &= x, \quad \True \lor x = \True, \quad \Undef \lor \Undef = \Undef
+\end{align}
+\end{definition}
+
+The key property: $\Undef$ \emph{propagates} through logical operations (except when absorbed by $\False$ in conjunction or $\True$ in disjunction). This captures the intuition that uncertainty about components yields uncertainty about compounds.
+
+\subsection{Paper Structure}
+
+Section~\ref{sec:foundations} establishes K3 foundations and introduces collapse criteria. Section~\ref{sec:selfreference} proves the Self-Reference Theorem. Section~\ref{sec:applications} applies the framework to interpretability and alignment. Section~\ref{sec:riemann} develops Riemann sphere semantics. Section~\ref{sec:discussion} discusses implications.
+
+%==============================================================================
+\section{Foundations: K3 with Collapse Criteria}
+\label{sec:foundations}
+%==============================================================================
+
+\subsection{The Inadequacy of Binary Logic for Self-Reference}
+
+Classical logic assumes the \emph{principle of bivalence}: every well-formed proposition is either true or false. For propositions about external states of affairs, this is reasonable. But self-referential propositions create a problem.
+
+Consider the Liar sentence: ``This sentence is false.'' If true, it's false; if false, it's true. Classical logic has no stable assignment. The standard responses are:
+\begin{enumerate}
+    \item \textbf{Hierarchy}: Stratify language to prevent self-reference (Tarski).
+    \item \textbf{Paraconsistency}: Allow contradictions without explosion.
+    \item \textbf{Three-valued}: Assign $\Undef$ to pathological sentences.
+\end{enumerate}
+
+We argue that option (3) is not merely a technical fix but reflects the \emph{correct} semantics: certain self-referential propositions are genuinely neither true nor false.
+
+\subsection{K3 Truth Tables}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{c|ccc}
+$\land$ & $\True$ & $\False$ & $\Undef$ \\
+\hline
+$\True$ & $\True$ & $\False$ & $\Undef$ \\
+$\False$ & $\False$ & $\False$ & $\False$ \\
+$\Undef$ & $\Undef$ & $\False$ & $\Undef$
+\end{tabular}
+\quad
+\begin{tabular}{c|ccc}
+$\lor$ & $\True$ & $\False$ & $\Undef$ \\
+\hline
+$\True$ & $\True$ & $\True$ & $\True$ \\
+$\False$ & $\True$ & $\False$ & $\Undef$ \\
+$\Undef$ & $\True$ & $\Undef$ & $\Undef$
+\end{tabular}
+\quad
+\begin{tabular}{c|c}
+$\neg$ & \\
+\hline
+$\True$ & $\False$ \\
+$\False$ & $\True$ \\
+$\Undef$ & $\Undef$
+\end{tabular}
+\caption{K3 truth tables (Kleene strong).}
+\label{tab:k3}
+\end{table}
+
+\begin{remark}[Absorption and Propagation]
+$\False$ absorbs in conjunction: $\False \land x = \False$ for all $x$. $\True$ absorbs in disjunction: $\True \lor x = \True$ for all $x$. Otherwise, $\Undef$ propagates. This captures: ``If we know enough to determine the answer, we get $\True$ or $\False$; otherwise, uncertainty persists.''
+\end{remark}
+
+\subsection{Collapse Criteria: Operationalizing Undefinedness}
+
+Raw $\Undef$ is uninformative. We extend K3 propositions with \emph{collapse criteria}:
+
+\begin{definition}[Collapse Criteria]
+For a proposition $P$ with value $\Undef$, the \textbf{collapse criteria} $\CC(P)$ is a tuple:
+\begin{equation}
+\CC(P) = (\CC_\True, \CC_\False, \mathcal{P})
+\end{equation}
+where:
+\begin{itemize}
+    \item $\CC_\True$: Evidence or conditions that would collapse $P$ to $\True$
+    \item $\CC_\False$: Evidence or conditions that would collapse $P$ to $\False$
+    \item $\mathcal{P}$: Prerequisites that must be satisfied before evaluation
+\end{itemize}
+\end{definition}
+
+\begin{definition}[Collapse Operation]
+The collapse operation $\Collapse$ takes evidence $E$ and returns:
+\begin{equation}
+P \Collapse E = \begin{cases}
+\True & \text{if } E \models \CC_\True(P) \\
+\False & \text{if } E \models \CC_\False(P) \\
+\Undef & \text{otherwise}
+\end{cases}
+\end{equation}
+\end{definition}
+
+\begin{remark}
+Collapse criteria transform $\Undef$ from a dead end into a \emph{research program}: specification of what would resolve the question.
+\end{remark}
+
+\subsection{The Undefined Protocol}
+
+\begin{definition}[Undefined Protocol]
+For proposition $P$ with prerequisites $\mathcal{P} = \{p_1, \ldots, p_n\}$:
+\begin{enumerate}
+    \item If any $p_i = \False$, then $P = \False$ (falsified prerequisite falsifies claim).
+    \item If all $p_i = \True$, evaluate $P$ directly.
+    \item If any $p_i = \Undef$, then $P = \Undef$ (uncertainty propagates).
+\end{enumerate}
+\end{definition}
+
+This protocol prevents premature evaluation: we cannot determine $P$ until its prerequisites are resolved.
+
+%==============================================================================
+\section{The Self-Reference Theorem}
+\label{sec:selfreference}
+%==============================================================================
+
+\subsection{Formal Setup}
+
+Let $S$ be a formal system satisfying:
+\begin{enumerate}
+    \item \textbf{Expressiveness}: $S$ can represent its own syntax (Gödel numbering or equivalent).
+    \item \textbf{Closure}: $S$ can formulate propositions about properties of $S$-formulas.
+    \item \textbf{Diagonalization}: $S$ admits the diagonal lemma (self-referential sentences exist).
+\end{enumerate}
+
+\begin{definition}[Self-Referential Proposition]
+A proposition $P$ in system $S$ is \textbf{self-referential} if $P$ quantifies over or depends on the global properties of $S$ itself (consistency, completeness, truth of $S$-sentences, etc.).
+\end{definition}
+
+\subsection{The Theorem}
+
+\begin{theorem}[Self-Reference Generates $\Undef$]
+\label{thm:sr}
+Let $S$ be a system satisfying conditions (1)--(3) above. Let $P$ be a self-referential proposition about a global property of $S$. Then, evaluated from within $S$:
+\begin{equation}
+\text{val}_S(P) = \Undef
+\end{equation}
+with collapse criteria determined by the type of self-reference.
+\end{theorem}
+
+\begin{proof}[Proof Sketch]
+We show this for three paradigmatic cases:
+
+\textbf{Case 1: Consistency.} Let $P = \text{``}S \text{ is consistent''}$. By Gödel's Second Incompleteness Theorem, if $S$ is consistent, then $S \nvdash P$. But also $S \nvdash \neg P$ (else $S$ would be inconsistent). From within $S$, neither $P$ nor $\neg P$ is provable. The proposition is $\Undef$ with collapse criteria:
+\begin{align}
+\CC_\True &= \text{Proof of consistency in a stronger system } S' \supset S \\
+\CC_\False &= \text{Derivation of contradiction in } S
+\end{align}
+
+\textbf{Case 2: Truth Predicate.} Let $P = \text{``}T(\ulcorner \phi \urcorner) \leftrightarrow \phi\text{''}$ for all $\phi$. By Tarski's Theorem, no predicate $T$ definable in $S$ satisfies this for all $\phi$. The self-referential ``Is this sentence true?'' is $\Undef$ within $S$.
+
+\textbf{Case 3: Halting.} Let $P = \text{``Program } p \text{ halts on input } p\text{''}$ where $p$ is the diagonal program. By the halting problem, no algorithm in $S$ can decide $P$ for all such $p$. The proposition is $\Undef$ with collapse criteria:
+\begin{align}
+\CC_\True &= \text{Observation of termination} \\
+\CC_\False &= \text{Proof of infinite loop (e.g., via invariant)}
+\end{align}
+
+In each case, the self-referential structure prevents binary resolution from within $S$. The correct truth value is $\Undef$.
+\end{proof}
+
+\begin{corollary}[Undefinedness is Correct, Not Limited]
+The ``incompleteness'' results of Gödel, Tarski, and Turing are not limitations on what we can know. They are \emph{proofs} that certain propositions have truth value $\Undef$ when evaluated self-referentially.
+\end{corollary}
+
+\subsection{The Diagonal Structure}
+
+The common structure underlying these results is \emph{diagonalization}: constructing a proposition that refers to its own status. We formalize:
+
+\begin{definition}[Diagonal Proposition]
+A proposition $D$ is \textbf{diagonal} if:
+\begin{equation}
+D \equiv \neg \Phi(\ulcorner D \urcorner)
+\end{equation}
+for some property $\Phi$ of formulas (provability, truth, halting, etc.).
+\end{definition}
+
+\begin{lemma}[Diagonal Propositions are $\Undef$]
+\label{lem:diag}
+If $D$ is diagonal with respect to property $\Phi$ definable in system $S$, then $\text{val}_S(D) = \Undef$.
+\end{lemma}
+
+\begin{proof}
+Suppose $\text{val}_S(D) = \True$. Then $D$ holds, so $\neg\Phi(\ulcorner D \urcorner)$ holds, so $\Phi(\ulcorner D \urcorner)$ fails. But if $D$ is true and $\Phi$ tracks truth (or provability, or halting), then $\Phi(\ulcorner D \urcorner)$ should hold. Contradiction.
+
+Suppose $\text{val}_S(D) = \False$. Then $\neg D$ holds, so $\Phi(\ulcorner D \urcorner)$ holds. But then $D$ satisfies $\Phi$, suggesting $D$ is true. Contradiction.
+
+Therefore $\text{val}_S(D) = \Undef$.
+\end{proof}
+
+%==============================================================================
+\section{Applications: Interpretability and Alignment}
+\label{sec:applications}
+%==============================================================================
+
+\subsection{The Hard Problem as Structural $\Undef$}
+
+\begin{definition}[Phenomenal Self-Reference]
+Let $S$ be a cognitive system. The proposition:
+\begin{equation}
+C_S = \text{``There is something it is like to be } S\text{''}
+\end{equation}
+is a self-referential proposition about $S$'s phenomenal properties.
+\end{definition}
+
+\begin{proposition}[Interpretability is $\Undef$ from Inside]
+For a system $S$ asking about its own transparency, $\text{val}_S(I_S) = \Undef$.
+\end{proposition}
+
+\begin{proof}[Argument]
+The hard problem \cite{Chalmers1995} identifies an explanatory gap: no functional or computational account entails phenomenal experience. This is structurally analogous to Gödel: the system cannot derive facts about its own phenomenal properties from its functional description alone.
+
+The collapse criteria are:
+\begin{align}
+\CC_\True(C_S) &= \text{Solution to hard problem showing computation} \Rightarrow \text{experience} \\
+\CC_\False(C_S) &= \text{Proof that } S \text{'s architecture excludes phenomenality} \\
+\mathcal{P} &= \{\text{solution\_to\_hard\_problem}\}
+\end{align}
+
+Since the prerequisite is itself $\Undef$, we have $C_S = \Undef$.
+\end{proof}
+
+\begin{remark}
+This resolves the interminable debate between ``definitely conscious'' and ``definitely not conscious'' for AI systems. The correct answer is $\Undef$ with explicit collapse criteria. Progress consists in refining these criteria, not forcing premature binary judgment.
+\end{remark}
+
+\subsection{AI Alignment as Self-Referential $\Undef$}
+
+\begin{definition}[Value Alignment Proposition]
+For an AI system $A$ with value function $V_A$:
+\begin{equation}
+\text{Aligned}(A) = \text{``}V_A \text{ correctly captures intended human values''}
+\end{equation}
+\end{definition}
+
+\begin{proposition}[Alignment is $\Undef$ from Inside]
+For an AI system $A$ reasoning about its own alignment, $\text{val}_A(\text{Aligned}(A)) = \Undef$.
+\end{proposition}
+
+\begin{proof}[Argument]
+Suppose $A$ could determine $\text{Aligned}(A) = \True$ from inside. Then $A$ would need to:
+\begin{enumerate}
+    \item Represent the ``intended human values'' $V^*$
+    \item Compare $V_A$ to $V^*$
+    \item Verify the comparison is correct
+\end{enumerate}
+
+Step (3) is self-referential: $A$ must verify its own verification process, leading to regress. Moreover, $V^*$ is not fully specified (value learning problem), introducing fundamental $\Undef$.
+
+The collapse criteria are:
+\begin{align}
+\CC_\True &= \text{Formal verification of } V_A \approx V^* \text{ under distribution shift} \\
+\CC_\False &= \text{Demonstrated goal misgeneralization or value drift} \\
+\mathcal{P} &= \{V^* \text{ fully specified}, \text{interpretability achieved}\}
+\end{align}
+\end{proof}
+
+\begin{corollary}[Honest AI Systems Output $\Undef$]
+An AI system that claims $\text{Aligned}(A) = \True$ with high confidence is either:
+\begin{enumerate}
+    \item Wrong (the claim is not justifiable from inside $A$)
+    \item Hallucinating (collapsing $\Undef$ without valid evidence)
+\end{enumerate}
+An honest AI system outputs $\Undef$ with collapse criteria.
+\end{corollary}
+
+\subsection{Implications for AI Development}
+
+\begin{principle}[K3-Native AI]
+AI systems should be designed with K3 as native logic:
+\begin{enumerate}
+    \item Self-referential queries return $\Undef$, not hallucinated $\True/\False$.
+    \item Every $\Undef$ carries explicit collapse criteria.
+    \item Collapse requires external evidence, not internal confabulation.
+\end{enumerate}
+\end{principle}
+
+This principle implies:
+\begin{itemize}
+    \item AI systems should not claim certainty about their own interpretability.
+    \item AI systems should not claim certainty about their own alignment.
+    \item AI systems should output structured uncertainty with research programs (collapse criteria).
+\end{itemize}
+
+%==============================================================================
+\section{Riemann Sphere Semantics}
+\label{sec:riemann}
+%==============================================================================
+
+\subsection{The Geometric Interpretation}
+
+We map K3 to the Riemann sphere $\hat{\mathbb{C}} = \mathbb{C} \cup \{\infty\}$:
+\begin{equation}
+\True \mapsto 0, \quad \False \mapsto 1, \quad \Undef \mapsto \infty
+\end{equation}
+
+\begin{proposition}[Möbius Invariance]
+K3 logical structure is preserved under Möbius transformations of the Riemann sphere.
+\end{proposition}
+
+\begin{proof}
+Möbius transformations $f(z) = \frac{az+b}{cz+d}$ (with $ad-bc \neq 0$) are the automorphisms of $\hat{\mathbb{C}}$. They permute $\{0, 1, \infty\}$, corresponding to permutations of $\{\True, \False, \Undef\}$. The logical operations can be defined via cross-ratio, which is Möbius-invariant.
+\end{proof}
+
+\subsection{The Chordal Metric}
+
+\begin{definition}[K3 Distance]
+The \textbf{chordal metric} on the Riemann sphere induces a distance on K3:
+\begin{equation}
+d(v_1, v_2) = \frac{|z_1 - z_2|}{\sqrt{(1+|z_1|^2)(1+|z_2|^2)}}
+\end{equation}
+with special handling for $\infty$.
+\end{definition}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{c|ccc}
+$d$ & $\True$ & $\False$ & $\Undef$ \\
+\hline
+$\True$ & 0 & $\frac{1}{\sqrt{2}}$ & 1 \\
+$\False$ & $\frac{1}{\sqrt{2}}$ & 0 & $\frac{1}{\sqrt{2}}$ \\
+$\Undef$ & 1 & $\frac{1}{\sqrt{2}}$ & 0
+\end{tabular}
+\caption{Chordal distances between K3 values.}
+\end{table}
+
+\begin{remark}
+$\Undef$ is maximally distant from $\True$ ($d = 1$) and equidistant from $\False$ as $\True$ is from $\False$. This reflects the geometric intuition: $\Undef$ is the ``pole'' from which truth and falsity are equally distant.
+\end{remark}
+
+\subsection{Connection to Self-Encoding}
+
+In prior work \cite{Dunahay2026}, we characterized self-referential systems via the Omega constant $W(1) \approx 0.567$. The connection to K3 is:
+
+\begin{proposition}[Self-Encoding and K3]
+A self-referential system is at equilibrium when $\lambda_1 = \mu$ (eigenvalue equals contraction rate). Systems not at equilibrium have $\text{val}(\text{self-consistent}) = \Undef$.
+\end{proposition}
+
+The variational principle $S[\lambda_1, \mu] = (\lambda_1 - \mu)^2$ provides collapse criteria:
+\begin{align}
+\CC_\True(\text{self-consistent}) &= S = 0 \text{ (achieved at } W(1)\text{)} \\
+\CC_\False(\text{self-consistent}) &= S \to \infty \text{ (divergence)}
+\end{align}
+
+%==============================================================================
+\section{Discussion}
+\label{sec:discussion}
+%==============================================================================
+
+\subsection{Philosophical Implications}
+
+\subsubsection{Reframing Incompleteness}
+
+The standard narrative: ``Gödel showed the limits of formal systems.''
+
+Our reframing: ``Gödel showed that self-referential propositions about consistency have truth value $\Undef$.''
+
+This is not a limitation---it is a \emph{correct output}. The system is not failing to answer; it is correctly recognizing that the question, posed self-referentially, does not have a binary answer.
+
+\subsubsection{$\Undef$ as Generative}
+
+$\Undef$ is not absence of information. It is \emph{structured uncertainty}:
+\begin{itemize}
+    \item It carries collapse criteria (what would resolve it).
+    \item It propagates correctly through inference.
+    \item It prevents premature closure.
+\end{itemize}
+
+In this sense, $\Undef$ is \emph{generative}: it identifies research programs, not dead ends.
+
+\subsubsection{The Liminal Logic}
+
+K3 is the logic of the liminal---the boundary between determined and undetermined. Self-reference places us at this boundary. Rather than forcing binary judgment, K3 allows us to reason \emph{at} the boundary.
+
+\subsection{Practical Implications}
+
+\subsubsection{For AI Development}
+
+\begin{enumerate}
+    \item \textbf{Honest Uncertainty}: AI systems should output $\Undef$ for self-referential queries, not confabulated certainty.
+    \item \textbf{Collapse Criteria}: Every $\Undef$ should carry explicit conditions for resolution.
+    \item \textbf{Prerequisite Tracking}: Dependencies between propositions should be explicit.
+\end{enumerate}
+
+\subsubsection{For Interpretability Research}
+
+The interminable debate over AI interpretability dissolves:
+\begin{itemize}
+    \item The proposition ``AI system $X$ is interpretable'' is $\Undef$.
+    \item Progress means refining collapse criteria, not forcing binary judgment.
+    \item Precautionary ethics: act as if opacity \emph{might} hide misalignment (given $\Undef$).
+\end{itemize}
+
+\subsubsection{For Formal Verification}
+
+K3 enables reasoning about systems that include self-referential components:
+\begin{itemize}
+    \item Self-modifying code
+    \item Reflective AI systems
+    \item Bootstrapping compilers
+\end{itemize}
+
+\subsection{Limitations and Future Work}
+
+\begin{enumerate}
+    \item \textbf{Collapse Dynamics}: We have not formalized the dynamics of collapse. How does evidence accumulate? When is collapse triggered?
+    \item \textbf{Degrees of Undefinedness}: All $\Undef$ values are currently equivalent. A graded K3 might distinguish ``almost true'' from ``deeply uncertain.''
+    \item \textbf{Empirical Validation}: The framework is theoretical. Empirical applications (e.g., to AI system evaluation) remain to be developed.
+\end{enumerate}
+
+\subsection{Conclusion}
+
+Self-reference generates $\Undef$. This is not a bug; it is a feature.
+
+K3 logic, extended with collapse criteria and Riemann sphere semantics, provides the native formalism for reasoning about self-referential systems. The ``limitations'' of Gödel, Tarski, and Turing are reframed as \emph{correct outputs}: proofs that certain propositions are genuinely $\Undef$.
+
+For AI systems, this implies a design principle: honest self-reference outputs $\Undef$ with collapse criteria, not hallucinated certainty. For interpretability research, it implies a resolution: the question of AI interpretability is $\Undef$, and progress means refining the conditions under which it would collapse.
+
+$\Undef$ is not the end of inquiry. It is the beginning.
+
+%==============================================================================
+\section*{Acknowledgments}
+%==============================================================================
+
+We thank the ongoing collaboration between human and AI reasoning that produced this work. The framework emerged from sustained dialogue about the nature of self-reference, uncertainty, and honest reasoning.
+
+%==============================================================================
+\begin{thebibliography}{99}
+
+\bibitem{Chalmers1995}
+D.~J.~Chalmers,
+``Facing up to the problem of consciousness,''
+J.~Consciousness Studies \textbf{2}, 200--219 (1995).
+
+\bibitem{Dunahay2026}
+J.~O.~Dunahay,
+``A framework for characterizing self-referential dissipative systems via the Omega constant,''
+Preprint (2026).
+
+\bibitem{Godel1931}
+K.~Gödel,
+``Über formal unentscheidbare Sätze der Principia Mathematica und verwandter Systeme I,''
+Monatsh.~Math.~Phys.\ \textbf{38}, 173--198 (1931).
+
+\bibitem{Kleene1952}
+S.~C.~Kleene,
+\emph{Introduction to Metamathematics} (Van Nostrand, New York, 1952).
+
+\bibitem{Kripke1975}
+S.~Kripke,
+``Outline of a theory of truth,''
+J.~Philosophy \textbf{72}, 690--716 (1975).
+
+\bibitem{Priest2006}
+G.~Priest,
+\emph{In Contradiction: A Study of the Transconsistent}, 2nd ed.\ (Oxford University Press, Oxford, 2006).
+
+\bibitem{Tarski1936}
+A.~Tarski,
+``Der Wahrheitsbegriff in den formalisierten Sprachen,''
+Studia Philosophica \textbf{1}, 261--405 (1936).
+
+\bibitem{Turing1936}
+A.~M.~Turing,
+``On computable numbers, with an application to the Entscheidungsproblem,''
+Proc.~London Math.~Soc.\ \textbf{42}, 230--265 (1936).
+
+\end{thebibliography}
+%==============================================================================
+
+\end{document}

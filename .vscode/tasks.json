@@ -1,0 +1,69 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Anchor + Gist",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy", "Bypass",
+        "-File", "${workspaceFolder}\\scripts\\anchor.ps1",
+        "-PaperDir", "${input:paperDir}",
+        "-PdfPath", "${input:pdfPath}",
+        "-Note", "${input:note}",
+        "-PublishGist"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Anchor (no Gist)",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy", "Bypass",
+        "-File", "${workspaceFolder}\\scripts\\anchor.ps1",
+        "-PaperDir", "${input:paperDir}",
+        "-PdfPath", "${input:pdfPath}",
+        "-Note", "${input:note}"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "Anchor Latest Paper + Gist",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy", "Bypass",
+        "-File", "${workspaceFolder}\\scripts\\anchor-latest.ps1"
+      ],
+      "problemMatcher": []
+    }
+  ],
+  "inputs": [
+    {
+      "id": "paperDir",
+      "type": "promptString",
+      "description": "Paper folder (relative to repo)",
+      "default": "papers\\2026-01-TensorENCHC"
+    },
+    {
+      "id": "pdfPath",
+      "type": "promptString",
+      "description": "PDF path (relative to repo)",
+      "default": "papers\\2026-01-TensorENCHC\\paper.pdf"
+    },
+    {
+      "id": "note",
+      "type": "promptString",
+      "description": "Milestone note",
+      "default": "snapshot"
+    }
+  ]
+}
